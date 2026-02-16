@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Notes App</title>
+<button class="btn btn-secondary mb-3" onclick="toggleDarkMode()">
+Toggle Dark Mode
+</button>
+<style>
+.dark-card {
+    background-color: #2c2c2c;
+    color: white;
+}
+</style>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+<h2 class="mb-3">Notes App</h2>
+
+<input type="text" id="searchInput"
+class="form-control mb-2"
+placeholder="Search notes..."
+onkeyup="searchNotes()">
+
+<div class="card p-3 mb-3">
+
+<input type="text" id="noteInput"
+class="form-control mb-2"
+placeholder="Write note"
+onkeypress="handleKeyPress(event)">
+
+<select id="priority" class="form-control mb-2">
+    <option value="normal">Normal</option>
+    <option value="important">Important</option>
+</select>
+
+<button class="btn btn-primary" onclick="addNote()">Save</button>
+
+</div>
+<button class="btn btn-success mb-2" onclick="downloadNotes()">
+Download Notes
+</button>
+
+<button class="btn btn-danger mb-2" onclick="clearNotes()">
+Clear All Notes
+</button>
+
+
+<div class="card p-3">
+    <h4>Saved Notes</h4>
+    <ul id="notesList" class="list-group"></ul>
+</div>
+
+</div>
+<p id="noteCount">Total Notes: 0</p>
+
+<script>
+
+function loadNotes() {
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+    let list = document.getElementById("notesList");
+    list.innerHTML = "";
+
+    notes.forEach((note, index) => {
+
+        let li = document.createElement("li");
+
+        if(note.priority === "important"){
+            li.className = "list-group-item list-group-item-danger d-flex justify-content-between";
+        } else {
+            li.className = "list-group-item d-flex justify-content-between";
+        }
+
+        let text = document.createElement("span");
+        text.textContent = note.text + " (" + note.time + ")";
+
+        let btnGroup = document.createElement("div");
+
+        let editBtn = document.createElement("button");
+        editBtn.textContent = "Edit";
+        editBtn.className = "btn btn-warning btn-sm me-2";
+        editBtn.onclick = function() {
+            editNote(index);
+        };
+
+        let delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.onclick = function() {
+            deleteNote(index);
+        };
+
+        btnGroup.appendChild(editBtn);
+        btnGroup.appendChild(delBtn);
+
+        li.appendChild(text);
+        li.appendChild(btnGroup);
+
+        list.appendChild(li);
+        document.getElementById("noteCount").textContent =
+"Total Notes: " + notes.length;
+
+    });
+}
+
+function addNote() {
+    let input = document.getElementById("noteInput");
+    let priority = document.getElementById("priority").value;
+
+    if(input.value.trim() === "") return;
+
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+
+    let now = new Date();
+    let time = now.toLocaleString();
+
+    let noteObject = {
+        text: input.value,
+        time: time,
+        priority: priority
+    };
+
+    notes.push(noteObject);
+
+    localStorage.setItem("notes", JSON.stringify(notes));
+
+    input.value = "";
+    loadNotes();
+}
+
+function deleteNote(index) {
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+    notes.splice(index, 1);
+    localStorage.setItem("notes", JSON.stringify(notes));
+    loadNotes();
+}
+
+function editNote(index) {
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+
+    let newNote = prompt("Edit note:", notes[index].text);
+
+    if(newNote !== null && newNote.trim() !== "") {
+        notes[index].text = newNote;
+        localStorage.setItem("notes", JSON.stringify(notes));
+        loadNotes();
+    }
+}
+
+function searchNotes() {
+    let searchText = document.getElementById("searchInput").value.toLowerCase();
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+
+    let filtered = notes.filter(note =>
+        note.text.toLowerCase().includes(searchText)
+    );
+
+    displayFilteredNotes(filtered);
+}
+
+function displayFilteredNotes(filteredNotes) {
+    let list = document.getElementById("notesList");
+    list.innerHTML = "";
+
+    filteredNotes.forEach((note) => {
+        let li = document.createElement("li");
+        li.className = "list-group-item";
+        li.textContent = note.text + " (" + note.time + ")";
+        list.appendChild(li);
+    });
+}
+
+function handleKeyPress(event) {
+    if (event.key === "Enter") {
+        addNote();
+    }
+}
+
+function toggleDarkMode() {
+    document.body.classList.toggle("bg-dark");
+    document.body.classList.toggle("text-white");
+
+    document.querySelectorAll(".card").forEach(card => {
+        card.classList.toggle("dark-card");
+    });
+}
+
+function downloadNotes() {
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+
+    if(notes.length === 0){
+        alert("No notes to download");
+        return;
+    }
+
+    let textContent = "";
+
+    notes.forEach(note => {
+        textContent += note.text + " (" + note.time + ")\n";
+    });
+
+    let blob = new Blob([textContent], { type: "text/plain" });
+    let link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+    link.download = "notes.txt";
+    link.click();
+}
+
+function clearNotes() {
+    if(confirm("Are you sure you want to delete all notes?")){
+        localStorage.removeItem("notes");
+        loadNotes();
+    }
+}
+
+
+window.onload = loadNotes;
+
+</script>
+
+</body>
+</html>
